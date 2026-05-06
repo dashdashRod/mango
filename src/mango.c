@@ -394,6 +394,7 @@ struct Client {
 	int32_t force_fakemaximize;
 	int32_t force_tiled_state;
 	pid_t pid;
+  uint32_t id; //newly added
 	Client *swallowing, *swallowedby;
 	bool is_clip_to_hide;
 	bool drag_to_tile;
@@ -829,6 +830,7 @@ static struct wlr_scene_tree *layers[NUM_LAYERS];
 static struct wlr_renderer *drw;
 static struct wlr_allocator *alloc;
 static struct wlr_compositor *compositor;
+static uint32_t next_client_id = 1; //enable focus_client
 
 static struct wlr_xdg_shell *xdg_shell;
 static struct wlr_xdg_activation_v1 *activation;
@@ -4065,6 +4067,7 @@ void init_client_properties(Client *c) {
 	c->overview_ismaximizescreenbak = 0;
 	c->overview_isfloatingbak = 0;
 	c->pid = 0;
+  c->id = next_client_id++;
 	c->swallowing = NULL;
 	c->swallowedby = NULL;
 	c->ismaster = 0;
@@ -5817,7 +5820,7 @@ void setup(void) {
 	}
 
 
-  wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 3, NULL,
+  wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 4, NULL, //Added version 4
 					 dwl_ipc_manager_bind);
 
 	// 创建顶层管理句柄

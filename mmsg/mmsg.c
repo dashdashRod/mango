@@ -42,6 +42,9 @@ static int32_t eflag;
 static int32_t kflag;
 static int32_t bflag;
 static int32_t Aflag;
+static int32_t Cflag;       /* list all clients */
+static int32_t Fflag;       /* focus client by id */
+static uint32_t focus_id;   /* arg for -F */
 
 static uint32_t occ, seltags, total_clients, urg;
 
@@ -386,6 +389,9 @@ static void dwl_ipc_output_frame(void *data,
 				dwl_ipc_output, dispatch_cmd, dispatch_arg1, dispatch_arg2,
 				dispatch_arg3, dispatch_arg4, dispatch_arg5);
 		}
+    if (Fflag) {                                                    /* NEW */
+      zdwl_ipc_output_v2_focus_client(dwl_ipc_output, focus_id);
+    }
 		wl_display_flush(display);
 		usleep(1000);
 		exit(0);
@@ -409,25 +415,40 @@ static void dwl_ipc_output_frame(void *data,
 	fflush(stdout);
 }
 
+static void dwl_ipc_output_client(void *data,
+                                  struct zdwl_ipc_output_v2 *output,
+                                  uint32_t id,
+                                  const char *appid,
+                                  const char *title,
+                                  uint32_t tags) {
+    if (Cflag && mode & GET) {
+        char tagbuf[10];
+        bin_str_9bits(tagbuf, tags);
+        printf("%u\t%s\t%s\t%s\n", id, appid, title, tagbuf);
+    }
+}
+
+
 static const struct zdwl_ipc_output_v2_listener dwl_ipc_output_listener = {
-	.toggle_visibility = dwl_ipc_output_toggle_visibility,
-	.active = dwl_ipc_output_active,
-	.tag = dwl_ipc_output_tag,
-	.layout = dwl_ipc_output_layout,
-	.title = dwl_ipc_output_title,
-	.appid = dwl_ipc_output_appid,
-	.layout_symbol = dwl_ipc_output_layout_symbol,
-	.fullscreen = dwl_ipc_output_fullscreen,
-	.floating = dwl_ipc_output_floating,
-	.x = dwl_ipc_output_x,
-	.y = dwl_ipc_output_y,
-	.width = dwl_ipc_output_width,
-	.height = dwl_ipc_output_height,
-	.last_layer = dwl_ipc_output_last_layer,
-	.kb_layout = dwl_ipc_output_kb_layout,
-	.keymode = dwl_ipc_output_keymode,
-	.scalefactor = dwl_ipc_output_scalefactor,
-	.frame = dwl_ipc_output_frame,
+  .toggle_visibility = dwl_ipc_output_toggle_visibility,
+    .active = dwl_ipc_output_active,
+    .tag = dwl_ipc_output_tag,
+    .layout = dwl_ipc_output_layout,
+    .title = dwl_ipc_output_title,
+    .appid = dwl_ipc_output_appid,
+    .client = dwl_ipc_output_client,        /* NEW */
+    .layout_symbol = dwl_ipc_output_layout_symbol,
+    .fullscreen = dwl_ipc_output_fullscreen,
+    .floating = dwl_ipc_output_floating,
+    .x = dwl_ipc_output_x,
+    .y = dwl_ipc_output_y,
+    .width = dwl_ipc_output_width,
+    .height = dwl_ipc_output_height,
+    .last_layer = dwl_ipc_output_last_layer,
+    .kb_layout = dwl_ipc_output_kb_layout,
+    .keymode = dwl_ipc_output_keymode,
+    .scalefactor = dwl_ipc_output_scalefactor,
+    .frame = dwl_ipc_output_frame,
 };
 
 static void wl_output_name(void *data, struct wl_output *output,
@@ -473,7 +494,7 @@ static void global_add(void *data, struct wl_registry *wl_registry,
 		}
 	} else if (strcmp(interface, zdwl_ipc_manager_v2_interface.name) == 0) {
 		dwl_ipc_manager = wl_registry_bind(wl_registry, name,
-										   &zdwl_ipc_manager_v2_interface, 2);
+										   &zdwl_ipc_manager_v2_interface, 4);
 		zdwl_ipc_manager_v2_add_listener(dwl_ipc_manager, &dwl_ipc_listener,
 										 NULL);
 	}
@@ -717,6 +738,19 @@ int32_t main(int32_t argc, char *argv[]) {
 			usage();
 		mode |= GET;
 		break;
+  case 'C':
+    Cflag = 1;
+    if (mode == SET)
+      usage();
+    mode |= GET;
+    break;
+  case 'F':
+    Fflag = 1;
+    if (mode != NONE && mode != SET)
+        usage();
+    mode = SET;
+    focus_id = (uint32_t)strtoul(EARGF(usage()), NULL, 10);
+    break;
 	default:
 		fprintf(stderr, "bad option %c\n", ARGC());
 		usage();
