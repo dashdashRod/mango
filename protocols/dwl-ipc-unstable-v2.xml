@@ -19,7 +19,7 @@ I would probably just submit raphi's patchset but I don't think that would be po
       reset.
   </description>
 
-  <interface name="zdwl_ipc_manager_v2" version="2">
+  <interface name="zdwl_ipc_manager_v2" version="4">
     <description summary="manage dwl state">
       This interface is exposed as a global in wl_registry.
 
@@ -60,7 +60,7 @@ I would probably just submit raphi's patchset but I don't think that would be po
     </event>
   </interface>
 
-  <interface name="zdwl_ipc_output_v2" version="2">
+  <interface name="zdwl_ipc_output_v2" version="4">
     <description summary="control dwl output">
       Observe and control a dwl output.
 
@@ -224,7 +224,7 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <description summary="last map layer.">
         last map layer.
       </description>
-      <arg name="last_layer" type="string" summary="last map layer."/>
+      <arg name="last_layer" type="string" allow-null="true" summary="last map layer."/>
     </event>
 
     <event name="kb_layout" since="2">
@@ -247,6 +247,29 @@ I would probably just submit raphi's patchset but I don't think that would be po
       </description>
       <arg name="scalefactor" type="uint" summary="scale factor of monitor."/>
     </event>
+
+
+    <!-- Version 4 -->
+    <event name="client" since="4">
+        <description summary="emitted once per client">
+            Sent for each client managed by the compositor on this output, once per
+            frame. The id is opaque to clients but stable for the lifetime of the
+            underlying compositor client and may be passed to focus_client.
+        </description>
+        <arg name="id" type="uint" summary="opaque, stable, unique per client"/>
+        <arg name="appid" type="string"/>
+        <arg name="title" type="string"/>
+        <arg name="tags" type="uint"/>
+    </event>
+    
+    <request name="focus_client" since="4">
+        <description summary="focus the client identified by id">
+            Request that the compositor focus the client with the given id (as
+            obtained from a client event on this output). If no such client exists
+            the request is silently ignored.
+        </description>
+        <arg name="id" type="uint" summary="client id from a client event"/>
+    </request>
 
   </interface>
 

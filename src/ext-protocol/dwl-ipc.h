@@ -30,18 +30,22 @@ static void dwl_ipc_output_dispatch(struct wl_client *client,
 									const char *arg4, const char *arg5);
 static void dwl_ipc_output_release(struct wl_client *client,
 								   struct wl_resource *resource);
+static void dwl_ipc_output_focus_client(struct wl_client *client,
+                                        struct wl_resource *resource,
+                                        uint32_t id);
 
 /* global event handlers */
 static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {
 	.release = dwl_ipc_manager_release,
 	.get_output = dwl_ipc_manager_get_output};
 static struct zdwl_ipc_output_v2_interface dwl_output_implementation = {
-	.release = dwl_ipc_output_release,
-	.set_tags = dwl_ipc_output_set_tags,
-	.quit = dwl_ipc_output_quit,
-	.dispatch = dwl_ipc_output_dispatch,
-	.set_layout = dwl_ipc_output_set_layout,
-	.set_client_tags = dwl_ipc_output_set_client_tags};
+    .release = dwl_ipc_output_release,
+    .set_tags = dwl_ipc_output_set_tags,
+    .quit = dwl_ipc_output_quit,
+    .dispatch = dwl_ipc_output_dispatch,
+    .set_layout = dwl_ipc_output_set_layout,
+    .set_client_tags = dwl_ipc_output_set_client_tags,
+    .focus_client = dwl_ipc_output_focus_client};
 
 void dwl_ipc_manager_bind(struct wl_client *client, void *data,
 						  uint32_t version, uint32_t id) {
@@ -98,6 +102,30 @@ static void dwl_ipc_output_destroy(struct wl_resource *resource) {
 	wl_list_remove(&ipc_output->link);
 	free(ipc_output);
 }
+
+void dwl_ipc_output_focus_client(struct wl_client *wl_client,
+                                 struct wl_resource *resource,
+                                 uint32_t id) {
+    Client *c;
+    wl_list_for_each(c, &clients, link) {
+        if (c->id == id) {
+            if (c->mon &&
+                !(c->mon == selmon &&
+                  (c->tags & c->mon->tagset[c->mon->seltags]))) {
+                /* Pre-select this client on its monitor so the view
+                 * switch arranges the layout around it.  Without this,
+                 * monocle/fullscreen views land on whichever client
+                 * was previously selected on the target tag, not on
+                 * our target client. */
+                c->mon->sel = c;
+                view_in_mon(&(Arg){.ui = c->tags}, true, c->mon, true);
+            }
+            focusclient(c, 1);
+            return;
+        }
+    }
+}
+
 
 // 修改IPC输出函数，接受掩码参数
 void dwl_ipc_output_printstatus(Monitor *monitor) {
@@ -212,6 +240,22 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
 	}
 
 	zdwl_ipc_output_v2_send_frame(ipc_output->resource);
+
+  //recently added
+  if (wl_resource_get_version(ipc_output->resource) >= ZDWL_IPC_OUTPUT_V2_CLIENT_SINCE_VERSION) {
+        const char *c_appid, *c_title;
+        wl_list_for_each(c, &clients, link) {
+            if (c->mon != monitor)
+                continue;
+            c_appid = client_get_appid(c);
+            c_title = client_get_title(c);
+            zdwl_ipc_output_v2_send_client(ipc_output->resource,
+              c->id,
+              c_appid ? c_appid : broken,
+              c_title ? c_title : broken,
+              c->tags);
+        }
+   }
 }
 
 void dwl_ipc_output_set_client_tags(struct wl_client *client,
