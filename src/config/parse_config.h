@@ -270,6 +270,7 @@ typedef struct {
 	uint32_t focus_on_activate;
 	int32_t idleinhibit_ignore_visible;
 	int32_t sloppyfocus;
+	int32_t raise_on_focus;
 	int32_t warpcursor;
 	int32_t drag_corner;
 	int32_t drag_warp_cursor;
@@ -1730,7 +1731,9 @@ bool parse_option(Config *config, char *key, char *value) {
 		config->idleinhibit_ignore_visible = atoi(value);
 	} else if (strcmp(key, "sloppyfocus") == 0) {
 		config->sloppyfocus = atoi(value);
-	} else if (strcmp(key, "warpcursor") == 0) {
+	} else if (strcmp(key, "raise_on_focus") == 0) {
+		config->raise_on_focus = atoi(value);
+  } else if (strcmp(key, "warpcursor") == 0) {
 		config->warpcursor = atoi(value);
 	} else if (strcmp(key, "drag_corner") == 0) {
 		config->drag_corner = atoi(value);
@@ -3347,6 +3350,7 @@ void override_config(void) {
 	config.idleinhibit_ignore_visible =
 		CLAMP_INT(config.idleinhibit_ignore_visible, 0, 1);
 	config.sloppyfocus = CLAMP_INT(config.sloppyfocus, 0, 1);
+  config.raise_on_focus = CLAMP_INT(config.raise_on_focus, 0, 1);
 	config.warpcursor = CLAMP_INT(config.warpcursor, 0, 1);
 	config.drag_corner = CLAMP_INT(config.drag_corner, 0, 4);
 	config.drag_warp_cursor = CLAMP_INT(config.drag_warp_cursor, 0, 1);
@@ -3483,6 +3487,7 @@ void set_value_default() {
 	config.enable_hotarea = 0;
 	config.smartgaps = 0;
 	config.sloppyfocus = 1;
+  config.raise_on_focus = 0;
 	config.gappih = 5;
 	config.gappiv = 5;
 	config.gappoh = 10;
