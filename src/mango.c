@@ -356,7 +356,8 @@ struct Client {
 	struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
 	int32_t isfloating, isurgent, isfullscreen, isfakefullscreen,
 		need_float_size_reduce, isminimized, isoverlay, isnosizehint,
-		ignore_maximize, ignore_minimize, idleinhibit_when_focus;
+		ignore_maximize, ignore_minimize, idleinhibit_when_focus,
+		wants_fullscreen;
 	int32_t ismaximizescreen;
 	int32_t overview_backup_bw;
 	int32_t fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -971,6 +972,10 @@ static int32_t scroller_focus_lock = 0;
 static uint32_t swipe_fingers = 0;
 static double swipe_dx = 0;
 static double swipe_dy = 0;
+/* When true, setfullscreen() will not sync wants_fullscreen to isfullscreen.
+ * Used by focusclient() during focus-out/focus-in restore so the user's
+ * explicit fullscreen intent persists across our internal toggles. */
+static bool setfullscreen_preserve_intent = false;
 
 bool render_border = true;
 
@@ -1501,6 +1506,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, no_force_center);
 	APPLY_INT_PROP(c, r, isfloating);
 	APPLY_INT_PROP(c, r, isfullscreen);
+  if (c->isfullscreen) c->wants_fullscreen = 1;
 	APPLY_INT_PROP(c, r, isfakefullscreen);
 	APPLY_INT_PROP(c, r, isnoborder);
 	APPLY_INT_PROP(c, r, isnoshadow);
@@ -3809,6 +3815,39 @@ void focusclient(Client *c, int32_t lift) {
 		selmon->sel = c;
 		c->isfocusing = true;
 
+    /* ── FULLSCREEN FOCUS HANDLING ──
+		 * On focus change, drop fullscreen from the previously focused
+		 * client if it was fullscreen (but preserve its intent).
+		 * Restore fullscreen on the newly focused client if its intent
+		 * persisted (wants_fullscreen=1) and it isn't currently fullscreen.
+		 *
+		 * Constraints to keep behavior conservative:
+		 *   - Skip if last_focus_client was on a DIFFERENT monitor
+		 *     (multi-monitor: keep fullscreen on monitor A when focus
+		 *     moves to monitor B). Same-monitor focus changes still drop.
+		 *   - Skip restore if the new client is in a transient state
+		 *     (isurgent, isoverlay, mid-animation) to avoid fighting
+		 *     mango's animation system.
+		 */
+		setfullscreen_preserve_intent = true;
+
+		/* Drop fullscreen on old focus (same-monitor only) */
+		if (last_focus_client && last_focus_client != c &&
+			!last_focus_client->iskilling &&
+			last_focus_client->mon == c->mon &&
+			last_focus_client->isfullscreen) {
+			setfullscreen(last_focus_client, 0);
+		}
+
+		/* Restore fullscreen on new focus, if user originally wanted it */
+		if (c->wants_fullscreen && !c->isfullscreen &&
+			!c->isurgent && !c->isoverlay) {
+			setfullscreen(c, 1);
+		}
+
+		setfullscreen_preserve_intent = false;
+		/* ── END FULLSCREEN FOCUS HANDLING ── */
+
 		check_keep_idle_inhibit(c);
 
 		if (last_focus_client && !last_focus_client->iskilling &&
@@ -5503,6 +5542,13 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 
 	int32_t old_fullscreen_state = c->isfullscreen;
 	c->isfullscreen = fullscreen;
+
+  /* By default, syncing wants_fullscreen reflects user intent.
+	 * focusclient() temporarily sets preserve_intent=true so the user's
+	 * fullscreen request survives focus-loss/focus-gain transitions. */
+	if (!setfullscreen_preserve_intent) {
+		c->wants_fullscreen = fullscreen ? 1 : 0;
+	}
 
 	client_set_fullscreen(c, fullscreen);
 	client_pending_fullscreen_state(c, fullscreen);
