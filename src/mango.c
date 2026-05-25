@@ -3786,8 +3786,29 @@ void focusclient(Client *c, int32_t lift) {
 		return;
 
 	/* Raise client in stacking order if requested */
-	if (c && lift)
+	if (c && lift) {
+		/* raise_on_focus: temporarily promote a focused tiled client
+		 * into LyrTop so it renders above floating siblings (KDE-like).
+		 * Demotion happens later in this function when we update focus.
+		 *
+		 * Skip the promotion if a fullscreen client is visible on the
+		 * same monitor — fullscreen should win, and putting a tile into
+		 * LyrTop alongside a fullscreen sibling produces visual breakage. */
+		if (config.raise_on_focus && !c->isfloating && !c->isfullscreen &&
+		    c->mon && c->scene && c->scene->node.parent == layers[LyrTile]) {
+			Client *fc;
+			int has_fullscreen = 0;
+			wl_list_for_each(fc, &clients, link) {
+				if (fc != c && VISIBLEON(fc, c->mon) && ISFULLSCREEN(fc)) {
+					has_fullscreen = 1;
+					break;
+				}
+			}
+			if (!has_fullscreen)
+				wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
+		}
 		wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
+	}
 
 	if (c && client_surface(c) == old_keyboard_focus_surface && selmon &&
 		selmon->sel)
@@ -3807,6 +3828,21 @@ void focusclient(Client *c, int32_t lift) {
 		selmon->sel = c;
 		c->isfocusing = true;
 
+	/* raise_on_focus: demote the previously focused client back to
+	 * LyrTile if we had promoted it. We only demote tiled,
+	 * non-fullscreen clients that currently sit in LyrTop — i.e.,
+	 * ones we put there ourselves. Floating/fullscreen clients
+	 * that naturally live in LyrTop are left alone. */
+	if (config.raise_on_focus && last_focus_client &&
+	    last_focus_client != c &&
+	    !last_focus_client->iskilling &&
+	    !last_focus_client->isfloating &&
+	    !last_focus_client->isfullscreen &&
+	    last_focus_client->scene &&
+    last_focus_client->scene->node.parent == layers[LyrTop]){
+		wlr_scene_node_reparent(&last_focus_client->scene->node,
+		                        layers[LyrTile]);
+  }
 		check_keep_idle_inhibit(c);
 
 		if (last_focus_client && !last_focus_client->iskilling &&
