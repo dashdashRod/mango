@@ -1459,6 +1459,29 @@ int32_t toggletag(const Arg *arg) {
 	return 0;
 }
 
+// Toggle tag `tagnum` (1-9) on the client with IPC id `id`,
+// WITHOUT touching focus. This is mirror-without-the-steal.
+int32_t toggletagid(const Arg *arg) {
+	Client *c = NULL, *tc;
+	wl_list_for_each(tc, &clients, link) {
+		if (tc->id == arg->ui2) {
+			c = tc;
+			break;
+		}
+	}
+	if (!c)
+		return 0;
+	uint32_t newtags = c->tags ^ (arg->ui & TAGMASK);
+	if (newtags) {                       // never orphan onto zero tags
+		c->tags = newtags;
+		if (c->mon)
+			arrange(c->mon, false, false);   // re-tile ITS monitor; no focusclient()
+	}
+	printstatus();
+	return 0;
+}
+
+
 int32_t toggleview(const Arg *arg) {
 	if (!selmon)
 		return 0;
