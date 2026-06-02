@@ -1184,7 +1184,11 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	} else if (strcmp(func_name, "toggletag") == 0) {
 		func = toggletag;
 		(*arg).ui = 1 << (atoi(arg_value) - 1);
-	} else if (strcmp(func_name, "toggleview") == 0) {
+	} else if (strcmp(func_name, "toggletagid") == 0) {
+    func = toggletagid;
+    (*arg).ui2 = (uint32_t)strtoul(arg_value, NULL, 10);  // client id (raw, like mmsg's -F)
+    (*arg).ui = 1 << (atoi(arg_value2) - 1);              // tag bit, pre-shifted
+  } else if (strcmp(func_name, "toggleview") == 0) {
 		func = toggleview;
 		(*arg).ui = 1 << (atoi(arg_value) - 1);
 	} else if (strcmp(func_name, "comboview") == 0) {

@@ -44,6 +44,7 @@ int32_t smartresizewin(const Arg *arg);
 int32_t centerwin(const Arg *arg);
 int32_t bind_to_view(const Arg *arg);
 int32_t toggletag(const Arg *arg);
+int32_t toggletagid(const Arg *arg);
 int32_t toggleview(const Arg *arg);
 int32_t tag(const Arg *arg);
 int32_t comboview(const Arg *arg);

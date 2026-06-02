@@ -1028,6 +1028,7 @@ struct Pertag {
 	struct DwindleNode *dwindle_root[LENGTH(tags) + 1];
 	const Layout *ltidxs[LENGTH(tags) + 1];
 	struct TagScrollerState *scroller_state[LENGTH(tags) + 1];
+  uint32_t selid[LENGTH(tags) + 1];  // last-focused client id per tag (0 = none)
 };
 #include "config/parse_config.h"
 
@@ -6701,6 +6702,11 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m,
 		return;
 	}
 
+  { //leave the brackets they're on purpose
+		Client *leaving = focustop(m);
+		m->pertag->selid[m->pertag->curtag] = leaving ? leaving->id : 0;
+	}
+
 	if (arg->ui == UINT32_MAX) {
 		if (m->tagset[0] != m->tagset[1]) {
 			m->pertag->prevtag = get_tags_first_tag_num(m->tagset[m->seltags]);
@@ -6741,8 +6747,18 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m,
 
 toggleseltags:
 
-	if (changefocus)
-		focusclient(focustop(m), 1);
+  if (changefocus) {
+    Client *want = NULL, *tc;
+    uint32_t wid = m->pertag->selid[m->pertag->curtag];
+    if (wid)
+      wl_list_for_each(tc, &clients, link)
+        if (tc->id == wid && VISIBLEON(tc, m)) {
+          want = tc;
+          break;
+        }
+    focusclient(want ? want : focustop(m), 1);
+  }
+  
 	arrange(m, want_animation, true);
 	printstatus();
 }
