@@ -3830,20 +3830,24 @@ void focusclient(Client *c, int32_t lift) {
 		 *     (isurgent, isoverlay, mid-animation) to avoid fighting
 		 *     mango's animation system.
 		 */
-		setfullscreen_preserve_intent = true;
-		/* Drop fullscreen on old focus (same-monitor only) */
-		if (last_focus_client && last_focus_client != c &&
-			!last_focus_client->iskilling &&
-			last_focus_client->mon == c->mon &&
-			last_focus_client->isfullscreen) {
-			setfullscreen(last_focus_client, 0);
+
+    if (config.fullscreen_follows_focus) {
+			setfullscreen_preserve_intent = true;
+			/* Drop fullscreen on old focus (same-monitor only) */
+			if (last_focus_client && last_focus_client != c &&
+				!last_focus_client->iskilling &&
+				last_focus_client->mon == c->mon &&
+				last_focus_client->isfullscreen) {
+				setfullscreen(last_focus_client, 0);
+			}
+			/* Restore fullscreen on new focus, if user originally wanted it */
+			if (c->wants_fullscreen && !c->isfullscreen &&
+				!c->isurgent && !c->isoverlay) {
+				setfullscreen(c, 1);
+			}
+			setfullscreen_preserve_intent = false;
 		}
-		/* Restore fullscreen on new focus, if user originally wanted it */
-		if (c->wants_fullscreen && !c->isfullscreen &&
-			!c->isurgent && !c->isoverlay) {
-			setfullscreen(c, 1);
-		}
-		setfullscreen_preserve_intent = false;
+    
 		/* ── END FULLSCREEN FOCUS HANDLING ── */
 
 		/* raise_on_focus: demote the previously focused client back to
@@ -3998,15 +4002,32 @@ void focusclient(Client *c, int32_t lift) {
 	}
 }
 
-void // 0.6
+
+void
 fullscreennotify(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, fullscreen);
 
 	if (!c || c->iskilling)
 		return;
 
-	setfullscreen(c, client_wants_fullscreen(c));
+	int32_t want = client_wants_fullscreen(c);
+
+	/* fullscreen-follows-focus: an unfocused client on the active monitor
+	 * may not enter the fullscreen layer over the focused client. Record
+	 * its intent and return WITHOUT calling setfullscreen() — that avoids
+	 * sending the client a fullscreen=false configure, which is what
+	 * provokes re-assert loops in clients like mpv. focusclient()'s
+	 * restore path promotes it the instant it gains focus. */
+	if (config.fullscreen_follows_focus && want &&
+	    selmon && selmon->sel && selmon->sel != c &&
+	    c->mon == selmon) {
+		c->wants_fullscreen = 1;
+		return;
+	}
+
+	setfullscreen(c, want);
 }
+
 
 void requestmonstate(struct wl_listener *listener, void *data) {
 	/* This ensures nested backends can be resized */
