@@ -271,6 +271,7 @@ typedef struct {
 	int32_t idleinhibit_ignore_visible;
 	int32_t sloppyfocus;
 	int32_t raise_on_focus;
+  int32_t fullscreen_follows_focus;
 	int32_t warpcursor;
 	int32_t drag_corner;
 	int32_t drag_warp_cursor;
@@ -1737,6 +1738,8 @@ bool parse_option(Config *config, char *key, char *value) {
 		config->sloppyfocus = atoi(value);
 	} else if (strcmp(key, "raise_on_focus") == 0) {
 		config->raise_on_focus = atoi(value);
+  } else if (strcmp(key, "fullscreen_follows_focus") == 0) {
+    config->fullscreen_follows_focus = atoi(value);
   } else if (strcmp(key, "warpcursor") == 0) {
 		config->warpcursor = atoi(value);
 	} else if (strcmp(key, "drag_corner") == 0) {
