@@ -5,10 +5,8 @@ static struct wlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager;
 void handle_foreign_activate_request(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, foreign_activate_request);
 	uint32_t target;
-
 	if (c->swallowing || !c->mon)
 		return;
-
 	if (c->isminimized) {
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
@@ -18,9 +16,14 @@ void handle_foreign_activate_request(struct wl_listener *listener, void *data) {
 		arrange(c->mon, true, false);
 		return;
 	}
-
-	target = get_tags_first_tag(c->tags);
-	view_in_mon(&(Arg){.ui = target}, true, c->mon, true);
+	/* Only switch tags if the client isn't already on the current view. A
+	 * window mirrored onto several tags is visible on the tag you're already
+	 * looking at, so focus it in place rather than yanking the view to its
+	 * lowest tag. Windows not on the current view still pull you over. */
+	if (!VISIBLEON(c, c->mon)) {
+		target = get_tags_first_tag(c->tags);
+		view_in_mon(&(Arg){.ui = target}, true, c->mon, true);
+	}
 	focusclient(c, 1);
 }
 
