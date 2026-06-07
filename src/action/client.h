@@ -83,8 +83,14 @@ void client_active(Client *c) {
 		return;
 	}
 
-	target = get_tags_first_tag(c->tags);
-	view_in_mon(&(Arg){.ui = target}, true, c->mon, true);
+  /* Only switch tags if the client isn't already on the current view. A
+	 * window mirrored onto several tags is visible on the tag you're already
+	 * looking at, so focus it in place rather than yanking the view to its
+	 * lowest tag. Windows not on the current view still pull you over. */
+	if (!VISIBLEON(c, c->mon)) {
+		target = get_tags_first_tag(c->tags);
+		view_in_mon(&(Arg){.ui = target}, true, c->mon, true);
+	}
 	focusclient(c, 1);
 }
 
