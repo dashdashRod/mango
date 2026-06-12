@@ -3891,7 +3891,7 @@ void focusclient(Client *c, int32_t lift) {
 			/* Drop fullscreen on old focus (same-monitor only) */
 			if (last_focus_client && last_focus_client != c &&
 				!last_focus_client->iskilling &&
-				last_focus_client->mon == c->mon &&
+        VISIBLEON(last_focus_client, c->mon) &&
 				last_focus_client->isfullscreen) {
 				setfullscreen(last_focus_client, 0);
 			}
@@ -4059,12 +4059,12 @@ fullscreennotify(struct wl_listener *listener, void *data) {
 	 * sending the client a fullscreen=false configure, which is what
 	 * provokes re-assert loops in clients like mpv. focusclient()'s
 	 * restore path promotes it the instant it gains focus. */
-	if (config.fullscreen_follows_focus && want &&
-	    selmon && selmon->sel && selmon->sel != c &&
-	    c->mon == selmon) {
-		c->wants_fullscreen = 1;
-		return;
-	}
+  if (config.fullscreen_follows_focus && want &&
+      selmon && selmon->sel && selmon->sel != c &&
+      VISIBLEON(c, selmon)) {
+      c->wants_fullscreen = 1;
+      return;
+  }
 
 <<<<<<< HEAD
 	setfullscreen(c, want, true);
