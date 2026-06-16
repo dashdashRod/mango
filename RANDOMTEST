@@ -1,0 +1,29 @@
+WL-1 selmon 1
+WL-1 tag 1 0 2 0
+WL-1 tag 2 1 1 1
+WL-1 tag 3 0 0 0
+WL-1 tag 4 0 0 0
+WL-1 tag 5 0 0 0
+WL-1 tag 6 0 0 0
+WL-1 tag 7 0 0 0
+WL-1 tag 8 0 0 0
+WL-1 tag 9 0 0 0
+WL-1 title mmsg -C 2>/dev/null  ~/D/m/mango
+WL-1 appid foot
+WL-1 layout T
+WL-1 fullscreen 0
+WL-1 floating 0
+WL-1 x 6
+WL-1 y 34
+WL-1 width 1268
+WL-1 height 680
+WL-1 last_layer launcher
+WL-1 kb_layout us
+WL-1 keymode default
+WL-1 scale_factor 1.000000
+WL-1 clients 3
+WL-1 tags 3 2 0
+WL-1 tags 000000011 000000010 000000000
+1	foot	~/D/m/mango	000000001
+2	org.mozilla.firefox	Restaurar sessão — Mozilla Firefox	000000001
+3	foot	mmsg -C 2>/dev/null  ~/D/m/mango	000000010

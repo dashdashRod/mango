@@ -3868,49 +3868,29 @@ void focusclient(Client *c, int32_t lift) {
 		 *     mango's animation system.
 		 */
 
-<<<<<<< HEAD
-  if (config.fullscreen_follows_focus) {
+    if (config.fullscreen_follows_focus) {
         setfullscreen_preserve_intent = true;
         /* Drop fullscreen on old focus (same-monitor only) */
         if (last_focus_client && last_focus_client != c &&
           !last_focus_client->iskilling &&
-          last_focus_client->mon == c->mon &&
+          VISIBLEON(last_focus_client, c->mon) &&
           last_focus_client->isfullscreen) {
           setfullscreen(last_focus_client, 0, true);
         }
-        /* Restore fullscreen on new focus, if user originally wanted it */
-        if (c->wants_fullscreen && !c->isfullscreen &&
+        /* Restore fullscreen on new focus for FLOATING clients only
+         * (e.g. mpv). Tiled clients like browsers are deliberately
+         * excluded: re-fullscreening a browser window after its page
+         * already left fullscreen yields an empty fullscreen frame, so
+         * tiled windows are left un-fullscreened. */
+        if (c->isfloating && c->wants_fullscreen && !c->isfullscreen &&
           !c->isurgent && !c->isoverlay) {
           setfullscreen(c, 1, true);
         }
         setfullscreen_preserve_intent = false;
-      }
-=======
-    if (config.fullscreen_follows_focus) {
-			setfullscreen_preserve_intent = true;
-			/* Drop fullscreen on old focus (same-monitor only) */
-			if (last_focus_client && last_focus_client != c &&
-				!last_focus_client->iskilling &&
-        VISIBLEON(last_focus_client, c->mon) &&
-				last_focus_client->isfullscreen) {
-				setfullscreen(last_focus_client, 0);
-			}
-
-      /* Restore fullscreen on new focus for FLOATING clients only
-			 * (e.g. mpv). Tiled clients like browsers are deliberately
-			 * excluded: re-fullscreening a browser window after its page
-			 * already left fullscreen yields an empty fullscreen frame, so
-			 * tiled windows are left un-fullscreened. */
-			if (c->isfloating && c->wants_fullscreen && !c->isfullscreen &&
-				!c->isurgent && !c->isoverlay) {
-				setfullscreen(c, 1);
-			}
-      
-			setfullscreen_preserve_intent = false;
 		}
-    
 		/* ── END FULLSCREEN FOCUS HANDLING ── */
->>>>>>> f3f0ab6 (Fixed overlay problem)
+
+
 
     /* raise_on_focus: demote the previously focused client back to
      * LyrTile if we had promoted it. We only demote tiled,
@@ -4066,11 +4046,7 @@ fullscreennotify(struct wl_listener *listener, void *data) {
       return;
   }
 
-<<<<<<< HEAD
 	setfullscreen(c, want, true);
-=======
-	setfullscreen(c, want);
-
   /* When the FOCUSED client leaves fullscreen, setfullscreen() drops it
 	 * back to LyrTile — but no focus change fires here, so raise_on_focus
 	 * (which only runs in focusclient) never re-lifts it above floating
@@ -4082,8 +4058,6 @@ fullscreennotify(struct wl_listener *listener, void *data) {
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
 		wlr_scene_node_raise_to_top(&c->scene->node);
 	}
-  
->>>>>>> f3f0ab6 (Fixed overlay problem)
 }
 
 
