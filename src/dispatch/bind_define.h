@@ -1477,7 +1477,7 @@ int32_t toggletagid(const Arg *arg) {
 		if (c->mon)
 			arrange(c->mon, false, false);   // re-tile ITS monitor; no focusclient()
 	}
-	printstatus();
+	printstatus(IPC_WATCH_ARRANGGE);
 	return 0;
 }
 
